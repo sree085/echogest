@@ -168,7 +168,7 @@ class AudioScreen(QWidget):
 
     def on_result(self, label):
         self.waveform.stop()
-        self.command.setText(f'Command: "{label}" → Completed')
+        self.command.setText(f'Audio Detected: "{label}"')
 
     def on_error(self, err):
         self.waveform.stop()

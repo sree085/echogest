@@ -3,6 +3,9 @@ import mediapipe as mp
 import time
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QImage
+from core.api_client import post_gesture
+from datetime import datetime
+
 
 class VisionWorker(QThread):
     frame_signal = pyqtSignal(QImage)
@@ -63,7 +66,17 @@ class VisionWorker(QThread):
                 last_gesture = gesture
 
             if stable_frames >= 3:
+                # self.gesture_signal.emit(gesture, confidence)
                 self.gesture_signal.emit(gesture, confidence)
+
+                # 🔗 Send to backend
+                post_gesture({
+                    "controllerId": "RP-AX92",
+                    "gesture": gesture,
+                    "confidence": confidence / 100,
+                    "timestamp": datetime.utcnow().isoformat() + "Z"
+                })
+
 
             # Convert frame for Qt
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

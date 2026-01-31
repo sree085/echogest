@@ -2,6 +2,7 @@
 venv/
 venv_ui/
 venv_audio/
+venv_backend/
 .env
 
 # Python
