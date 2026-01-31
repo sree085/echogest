@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QMainWindow, QStackedWidget
+import sys
+from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QApplication
 from ui.screens.home import HomeScreen
 from ui.screens.audio import AudioScreen
 from ui.screens.gesture import GestureScreen
@@ -9,8 +10,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EchoGest")
-
-        # 🔒 Force PiScreen resolution
         self.setFixedSize(480, 320)
 
         self.stack = QStackedWidget()
@@ -26,12 +25,12 @@ class MainWindow(QMainWindow):
 
         self.stack.setCurrentWidget(self.home)
 
+    # -------------------------------
     def show_home(self):
         self.stack.setCurrentWidget(self.home)
 
     def show_gesture(self):
         self.stack.setCurrentWidget(self.gesture)
-        # 🔁 ALWAYS restart gesture worker
         self.gesture.start_worker()
 
     def show_audio(self):
@@ -40,3 +39,16 @@ class MainWindow(QMainWindow):
 
     def show_emergency(self):
         self.stack.setCurrentWidget(self.emergency)
+
+    # -------------------------------
+    # 🔴 HARD EXIT BUTTON HANDLER
+    # -------------------------------
+    def shutdown(self):
+        try:
+            if self.gesture:
+                self.gesture.stop_worker()
+            if self.audio:
+                self.audio.cleanup()
+        finally:
+            QApplication.quit()
+            sys.exit(0)

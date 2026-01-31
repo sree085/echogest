@@ -24,7 +24,7 @@ class GestureScreen(QWidget):
         layout.addWidget(title, alignment=Qt.AlignLeft)
 
         self.camera_box = QLabel()
-        self.camera_box.setFixedSize(296, 180)
+        self.camera_box.setFixedSize(280, 180)
         self.camera_box.setAlignment(Qt.AlignCenter)
         self.camera_box.setStyleSheet("""
             border:2px solid #5fa3ff;
