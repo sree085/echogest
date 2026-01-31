@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton # type: ignore
+from PyQt5.QtCore import Qt # type: ignore
 
 class EmergencyScreen(QWidget):
     def __init__(self, main):

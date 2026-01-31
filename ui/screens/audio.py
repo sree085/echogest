@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import (
+from PyQt5.QtWidgets import ( # type: ignore
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
 )
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QPainter, QColor, QBrush
+from PyQt5.QtCore import Qt, QTimer # type: ignore
+from PyQt5.QtGui import QPainter, QColor, QBrush # type: ignore
 
 import sounddevice as sd
 import numpy as np

@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal # type: ignore
 import subprocess
 import os
 from core.api_client import post_audio
