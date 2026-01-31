@@ -6,7 +6,9 @@
 
 
 
-
+python3 -m venv venv_ui
+source venv_ui/bin/activate
+pip install -r requirements_ui.txt
 
 
 

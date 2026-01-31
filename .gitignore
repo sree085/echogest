@@ -1,0 +1,12 @@
+# Virtual environments
+venv/
+venv_ui/
+venv_audio/
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# ML caches
+.cache/
