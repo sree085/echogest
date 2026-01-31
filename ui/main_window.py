@@ -4,10 +4,14 @@ from ui.screens.audio import AudioScreen
 from ui.screens.gesture import GestureScreen
 from ui.screens.emergency import EmergencyScreen
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("EchoGest")
+
+        # 🔒 Force PiScreen resolution
+        self.setFixedSize(480, 320)
 
         self.stack = QStackedWidget()
         self.setCentralWidget(self.stack)
@@ -22,10 +26,17 @@ class MainWindow(QMainWindow):
 
         self.stack.setCurrentWidget(self.home)
 
-    def show_home(self): self.stack.setCurrentWidget(self.home)
-    # def show_audio(self): self.stack.setCurrentWidget(self.audio)
-    def show_gesture(self): self.stack.setCurrentWidget(self.gesture)
-    def show_emergency(self): self.stack.setCurrentWidget(self.emergency)
+    def show_home(self):
+        self.stack.setCurrentWidget(self.home)
+
+    def show_gesture(self):
+        self.stack.setCurrentWidget(self.gesture)
+        # 🔁 ALWAYS restart gesture worker
+        self.gesture.start_worker()
+
     def show_audio(self):
         self.stack.setCurrentWidget(self.audio)
         self.audio.restart_audio()
+
+    def show_emergency(self):
+        self.stack.setCurrentWidget(self.emergency)

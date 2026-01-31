@@ -33,3 +33,38 @@ git push -u origin main
 git remote add origin https://github.com/sree085/echogest.git
 git branch -M main
 git push -u origin main
+
+
+
+
+
+
+sudo nano /etc/systemd/system/echogest.service
+
+
+
+[Unit]
+Description=EchoGest UI
+After=graphical.target
+
+[Service]
+Type=simple
+User=pi5
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi5/.Xauthority
+WorkingDirectory=/home/pi5/Desktop/echogest_ui
+ExecStart=/home/pi5/Desktop/echogest_ui/start_echogest.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+
+
+
+
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable echogest.service
+sudo systemctl start echogest.service
