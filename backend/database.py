@@ -6,7 +6,7 @@ MONGO_URL = os.getenv(
     "mongodb+srv://echogest:<PASS>@cluster0.sjdebtx.mongodb.net/echogest?appName=Cluster0"
     )
     
-    # "mongodb+srv://echogest:<PASS>@cluster0.xxxxx.mongodb.net/echogest?retryWrites=true&w=majority"
+    # "mongodb+srv://echogest:echogestPI5@cluster0.xxxxx.mongodb.net/echogest?retryWrites=true&w=majority"
 
 client = MongoClient(MONGO_URL)
 db = client["echogest"]
