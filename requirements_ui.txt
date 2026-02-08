@@ -189,6 +189,7 @@ types-oauthlib==3.2
 types-openpyxl==3.0
 types-opentracing==2.4
 types-paho-mqtt==1.6
+paho-mqtt==1.6.1
 types-paramiko==2.11
 types-parsimonious==0.10
 types-passlib==1.7

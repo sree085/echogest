@@ -1,15 +1,18 @@
 import cv2
 import mediapipe as mp
 import time
+import math
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QImage
 from core.api_client import post_gesture
+from core.config import CONTROLLER_ID
 from datetime import datetime
 
 
 class VisionWorker(QThread):
     frame_signal = pyqtSignal(QImage)
     gesture_signal = pyqtSignal(str, int)
+    countdown_signal = pyqtSignal(int)
 
     def run(self):
         cap = cv2.VideoCapture(0)
@@ -26,11 +29,16 @@ class VisionWorker(QThread):
             min_tracking_confidence=0.6
         )
 
+        delay_s = 5.0
         last_gesture = ""
         stable_frames = 0
         last_time = 0
+        detection_start_time = None
+        emitted_once = False
 
         while True:
+            if self.isInterruptionRequested():
+                break
             ret, frame = cap.read()
             if not ret:
                 break
@@ -48,35 +56,59 @@ class VisionWorker(QThread):
             gesture = "Unknown"
             confidence = 0
 
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    mp_draw.draw_landmarks(
-                        frame,
-                        hand_landmarks,
-                        mp_hands.HAND_CONNECTIONS
-                    )
-                    gesture = self.detect_gesture(hand_landmarks.landmark)
-                    confidence = 85
+            should_exit = False
 
-            # Gesture stability filter
-            if gesture == last_gesture:
-                stable_frames += 1
-            else:
+            if results.multi_hand_landmarks and not emitted_once:
+                if detection_start_time is None:
+                    detection_start_time = time.monotonic()
+                    self.countdown_signal.emit(int(delay_s))
+
+                elapsed = time.monotonic() - detection_start_time
+                if elapsed >= delay_s:
+                    for hand_landmarks in results.multi_hand_landmarks:
+                        mp_draw.draw_landmarks(
+                            frame,
+                            hand_landmarks,
+                            mp_hands.HAND_CONNECTIONS
+                        )
+                        gesture = self.detect_gesture(hand_landmarks.landmark)
+                        confidence = 85
+                        break
+
+                    # Gesture stability filter
+                    if gesture == last_gesture:
+                        stable_frames += 1
+                    else:
+                        stable_frames = 0
+                        last_gesture = gesture
+
+                    if stable_frames >= 3:
+                        self.gesture_signal.emit(gesture, confidence)
+                        emitted_once = True
+                        self.countdown_signal.emit(0)
+                        should_exit = True
+
+                        # 🔗 Send to backend
+                        if gesture != "Unknown":
+                            post_gesture({
+                                "controllerId": CONTROLLER_ID,
+                                "gesture": gesture,
+                                "confidence": confidence / 100,
+                                "timestamp": datetime.utcnow().isoformat() + "Z"
+                            })
+                else:
+                    remaining = int(max(0, math.ceil(delay_s - elapsed)))
+                    self.countdown_signal.emit(remaining)
+                    last_gesture = ""
+                    stable_frames = 0
+            elif not results.multi_hand_landmarks:
+                detection_start_time = None
+                last_gesture = ""
                 stable_frames = 0
-                last_gesture = gesture
+                self.countdown_signal.emit(0)
 
-            if stable_frames >= 3:
-                # self.gesture_signal.emit(gesture, confidence)
-                self.gesture_signal.emit(gesture, confidence)
-
-                # 🔗 Send to backend
-                post_gesture({
-                    "controllerId": "RP-AX92",
-                    "gesture": gesture,
-                    "confidence": confidence / 100,
-                    "timestamp": datetime.utcnow().isoformat() + "Z"
-                })
-
+            if should_exit:
+                break
 
             # Convert frame for Qt
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -92,14 +124,14 @@ class VisionWorker(QThread):
         thumb_open = landmarks[4].x > landmarks[3].x
 
         if all(folded):
-            return "GESTURE DETECTION STARTED"
+            return "OPEN PALM"
         elif not any(folded) and not thumb_open:
             return "POWER OFF"
         elif not any(folded) and thumb_open:
-            return "LIGHTS ON"
+            return "Thumbs Up"
         elif folded == [True, False, False, False]:
-            return "FAN ON"
+            return "Index"
         elif folded == [True, True, False, False]:
-            return "Victory ✌️"
+            return "Victory"
         else:
             return "Unknown"

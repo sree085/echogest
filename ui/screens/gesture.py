@@ -11,6 +11,7 @@ class GestureScreen(QWidget):
         super().__init__()
         self.main = main
         self.worker = None
+        self.gesture_handled = False
 
         # 🔒 Lock screen size for PiScreen 3.5"
         self.setFixedSize(480, 320)
@@ -40,7 +41,12 @@ class GestureScreen(QWidget):
 
         self.progress = QProgressBar()
         self.progress.setFixedHeight(14)
-        self.progress.setRange(0, 100)
+        self.progress.setRange(0, 5)
+        self.progress.setValue(0)
+
+        self.countdown_label = QLabel("Countdown: --")
+        self.countdown_label.setAlignment(Qt.AlignCenter)
+        self.countdown_label.setStyleSheet("font-size:14px; color:#444;")
 
         footer = QLabel("Camera active • Hand motion trigger")
         footer.setAlignment(Qt.AlignCenter)
@@ -54,6 +60,7 @@ class GestureScreen(QWidget):
         layout.addSpacing(6)
         layout.addWidget(self.gesture_label)
         layout.addWidget(self.progress)
+        layout.addWidget(self.countdown_label)
         layout.addWidget(footer)
         layout.addStretch()
         layout.addWidget(home)
@@ -63,17 +70,21 @@ class GestureScreen(QWidget):
     # --------------------------------------------------
     def start_worker(self):
         self.stop_worker()
+        self.gesture_handled = False
+        self.update_countdown(0)
 
         self.worker = VisionWorker()
         self.worker.frame_signal.connect(self.update_frame)
         self.worker.gesture_signal.connect(self.update_gesture)
+        self.worker.countdown_signal.connect(self.update_countdown)
         self.worker.start()
 
     def stop_worker(self):
         if self.worker and self.worker.isRunning():
             self.worker.requestInterruption()
-            self.worker.terminate()
-            self.worker.wait()
+            if not self.worker.wait(1500):
+                self.worker.terminate()
+                self.worker.wait(500)
         self.worker = None
 
     # --------------------------------------------------
@@ -88,8 +99,22 @@ class GestureScreen(QWidget):
         )
 
     def update_gesture(self, gesture, confidence):
+        if self.gesture_handled:
+            return
+        self.gesture_handled = True
+
         self.gesture_label.setText(f"Gesture: {gesture}")
-        self.progress.setValue(confidence)
+        self.update_countdown(0)
+
+        self.go_home()
+
+    def update_countdown(self, remaining):
+        if remaining <= 0:
+            self.countdown_label.setText("Countdown: --")
+            self.progress.setValue(0)
+            return
+        self.countdown_label.setText(f"Countdown: {remaining}s")
+        self.progress.setValue(remaining)
 
     # --------------------------------------------------
     def go_home(self):

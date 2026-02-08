@@ -172,7 +172,8 @@ class AudioScreen(QWidget):
 
     def on_error(self, err):
         self.waveform.stop()
-        self.command.setText("Audio error")
+        msg = err or "Audio error"
+        self.command.setText(f"Audio error: {msg}")
 
     # -------------------------------------------------
     def go_home(self):

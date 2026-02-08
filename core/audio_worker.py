@@ -2,6 +2,7 @@ from PyQt5.QtCore import QThread, pyqtSignal # type: ignore
 import subprocess
 import os
 from core.api_client import post_audio
+from core.config import CONTROLLER_ID
 from datetime import datetime
 
 
@@ -30,7 +31,10 @@ class AudioWorker(QThread):
             self.status_signal.emit("🧠 Processing audio...")
 
             if result.returncode != 0:
-                self.error_signal.emit(result.stderr.strip())
+                err = result.stderr.strip()
+                if not err:
+                    err = result.stdout.strip() or "Audio inference failed"
+                self.error_signal.emit(err)
                 return
 
             # label = result.stdout.strip()
@@ -39,14 +43,17 @@ class AudioWorker(QThread):
             label_out = result.stdout.strip()
             label = label_out.splitlines()[-1].strip()  # Get the last line of output
             self.result_signal.emit(label)
-            # print(f"[AudioWorker] Detected sound: {label} ")  
+            print(f"[AudioWorker] Detected sound: {label} ")  
 
             # 🔗 Send to backend
-            post_audio({
-                "controllerId": "RP-AX92",
+            ok, err = post_audio({
+                "controllerId": CONTROLLER_ID,
                 "sound": label,
-                "confidence": 0.9
+                "confidence": 0.9,
+                "timestamp": datetime.utcnow().isoformat() + "Z"
             })
+            if not ok:
+                self.error_signal.emit(err or "Failed to store audio event")
 
 
         except Exception as e:

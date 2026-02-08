@@ -7,12 +7,14 @@ class GestureEvent(BaseModel):
     gesture: str
     confidence: float
     timestamp: datetime
+    action: Optional[str] = None
 
 
 class AudioEvent(BaseModel):
     controllerId: str
     sound: str
     confidence: float
+    timestamp: Optional[datetime] = None
 
 
 class DeviceUpdate(BaseModel):

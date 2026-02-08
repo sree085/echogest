@@ -1,3 +1,4 @@
+import time
 import cv2
 import mediapipe as mp
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -27,17 +28,19 @@ class GestureWorker(QThread):
                 thumb_open = landmarks[4].x < landmarks[3].x
 
             if all(finger_fold_status):
-                return "GESTURE DETECTION STARTED"
+                return "OPEN PALM"
             elif not any(finger_fold_status) and not thumb_open:
                 return "POWER OFF"
             elif not any(finger_fold_status) and thumb_open:
-                return "LIGHTS ON"
+                return "Thumbs Up"
             elif finger_fold_status == [1, 0, 0, 0]:
-                return "FAN ON"
+                return "Index"
             elif finger_fold_status == [1, 1, 0, 0]:
-                return "Victory ✌️"
+                return "Victory"
             else:
                 return "Unknown"
+
+        detection_start_time = None
 
         while True:
             success, img = cap.read()
@@ -48,9 +51,21 @@ class GestureWorker(QThread):
             results = hands.process(img_rgb)
 
             if results.multi_hand_landmarks:
+                if detection_start_time is None:
+                    detection_start_time = time.monotonic()
+
+                elapsed = time.monotonic() - detection_start_time
+                if elapsed < 5:
+                    continue
+
                 for hand_landmarks in results.multi_hand_landmarks:
                     landmarks = hand_landmarks.landmark
                     gesture = detect_gesture(landmarks)
                     self.gesture_signal.emit(gesture)
+                    break
+
+                detection_start_time = None
+            else:
+                detection_start_time = None
 
         cap.release()

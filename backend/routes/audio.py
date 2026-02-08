@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from datetime import datetime
 # from database import audio_col
 # from models import AudioEvent
@@ -11,19 +11,23 @@ router = APIRouter()
 
 @router.post("/api/audio")
 def store_audio(data: AudioEvent):
-    severity = "HIGH" if data.confidence > 0.85 else "MEDIUM"
+    now = datetime.utcnow()
+    event_ts = data.timestamp or now
 
     doc = {
         "controllerId": data.controllerId,
         "sound": data.sound,
         "confidence": data.confidence,
-        "severity": severity,
-        "timestamp": datetime.utcnow(),
-        "actionTaken": "EMERGENCY_ALERT" if data.sound.lower().find("cry") != -1 else "NONE",
-        "createdAt": datetime.utcnow()
+        "timestamp": event_ts,
+        "createdAt": now,
+        "updatedAt": now,
+        "__v": 0
     }
 
-    audio_col.insert_one(doc)
+    try:
+        audio_col.insert_one(doc)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audio insert failed: {e}")
 
     return {
         "status": "ok",
