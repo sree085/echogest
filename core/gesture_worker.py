@@ -30,7 +30,7 @@ class GestureWorker(QThread):
             if all(finger_fold_status):
                 return "OPEN PALM"
             elif not any(finger_fold_status) and not thumb_open:
-                return "POWER OFF"
+                return "FIST"
             elif not any(finger_fold_status) and thumb_open:
                 return "Thumbs Up"
             elif finger_fold_status == [1, 0, 0, 0]:

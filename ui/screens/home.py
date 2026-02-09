@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import (
     QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton
 )
 from PyQt5.QtCore import Qt, QTimer, QDateTime
+from urllib.request import urlopen
+from urllib.error import URLError, HTTPError
 
 
 class HomeScreen(QWidget):
@@ -22,6 +24,8 @@ class HomeScreen(QWidget):
 
         status = QLabel("●  AI Active")
         status.setStyleSheet("color:#4f8df7; font-size:14px;")
+        self.backend_status = QLabel("●  Backend")
+        self._set_backend_status(False)
 
         exit_btn = QPushButton("●")
         exit_btn.setFixedSize(22, 22)
@@ -38,6 +42,8 @@ class HomeScreen(QWidget):
         exit_btn.clicked.connect(self.main.shutdown)
 
         top_bar.addWidget(status)
+        top_bar.addSpacing(10)
+        top_bar.addWidget(self.backend_status)
         top_bar.addStretch()
         top_bar.addWidget(exit_btn)
 
@@ -84,7 +90,26 @@ class HomeScreen(QWidget):
         timer.start(1000)
         self.update_time()
 
+        # Backend status timer
+        self.backend_timer = QTimer(self)
+        self.backend_timer.timeout.connect(self.check_backend)
+        self.backend_timer.start(3000)
+        self.check_backend()
+
+    def _set_backend_status(self, ok: bool):
+        color = "#22c55e" if ok else "#ef4444"
+        text = "●  Backend" if ok else "●  Backend"
+        self.backend_status.setText(text)
+        self.backend_status.setStyleSheet(f"color:{color}; font-size:14px;")
+
     def update_time(self):
         now = QDateTime.currentDateTime()
         self.time.setText(now.toString("HH:mm"))
         self.date.setText(now.toString("ddd, MMM d"))
+
+    def check_backend(self):
+        try:
+            with urlopen("http://localhost:8000/", timeout=1) as resp:
+                self._set_backend_status(resp.status == 200)
+        except (URLError, HTTPError):
+            self._set_backend_status(False)

@@ -1,12 +1,13 @@
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 
 class GestureEvent(BaseModel):
     controllerId: str
     gesture: str
     confidence: float
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
+    source: Optional[str] = None
     action: Optional[str] = None
 
 

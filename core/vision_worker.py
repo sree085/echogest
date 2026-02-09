@@ -6,7 +6,6 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QImage
 from core.api_client import post_gesture
 from core.config import CONTROLLER_ID
-from datetime import datetime
 
 
 class VisionWorker(QThread):
@@ -94,7 +93,7 @@ class VisionWorker(QThread):
                                 "controllerId": CONTROLLER_ID,
                                 "gesture": gesture,
                                 "confidence": confidence / 100,
-                                "timestamp": datetime.utcnow().isoformat() + "Z"
+                                "source": "vision"
                             })
                 else:
                     remaining = int(max(0, math.ceil(delay_s - elapsed)))
@@ -130,7 +129,7 @@ class VisionWorker(QThread):
         elif not any(folded) and thumb_open:
             return "Thumbs Up"
         elif folded == [True, False, False, False]:
-            return "Index"
+            return "INDEX"
         elif folded == [True, True, False, False]:
             return "Victory"
         else:

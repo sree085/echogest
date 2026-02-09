@@ -17,9 +17,10 @@ def store_gesture(data: GestureEvent):
         "controllerId": data.controllerId,
         "gesture": data.gesture,
         "confidence": data.confidence,
-        "timestamp": data.timestamp,
-        "source": "vision",
-        "createdAt": now
+        "timestamp": data.timestamp or now,
+        "source": data.source or "vision",
+        "createdAt": now,
+        "updatedAt": now
     }
 
     gestures_col.insert_one(doc)
@@ -40,8 +41,12 @@ def store_gesture(data: GestureEvent):
     )
 
     return {
-        "status": "ok",
-        "message": "Gesture stored"
+        "message": "Gesture mapped and command queued",
+        "action": {
+            "deviceId": "ESP-01",
+            "appliance": "Fan",
+            "action": "OFF"
+        }
     }
 
 
