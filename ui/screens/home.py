@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QDateTime
 from urllib.request import urlopen
 from urllib.error import URLError, HTTPError
+import socket
+from core.api_client import BACKEND_URL
 
 
 class HomeScreen(QWidget):
@@ -22,10 +24,10 @@ class HomeScreen(QWidget):
         # ===============================
         top_bar = QHBoxLayout()
 
-        status = QLabel("●  AI Active")
-        status.setStyleSheet("color:#4f8df7; font-size:14px;")
         self.backend_status = QLabel("●  Backend")
+        self.wifi_status = QLabel("●  WiFi")
         self._set_backend_status(False)
+        self._set_wifi_status(False)
 
         exit_btn = QPushButton("●")
         exit_btn.setFixedSize(22, 22)
@@ -41,9 +43,9 @@ class HomeScreen(QWidget):
         """)
         exit_btn.clicked.connect(self.main.shutdown)
 
-        top_bar.addWidget(status)
-        top_bar.addSpacing(10)
         top_bar.addWidget(self.backend_status)
+        top_bar.addSpacing(10)
+        top_bar.addWidget(self.wifi_status)
         top_bar.addStretch()
         top_bar.addWidget(exit_btn)
 
@@ -92,9 +94,9 @@ class HomeScreen(QWidget):
 
         # Backend status timer
         self.backend_timer = QTimer(self)
-        self.backend_timer.timeout.connect(self.check_backend)
+        self.backend_timer.timeout.connect(self.check_statuses)
         self.backend_timer.start(3000)
-        self.check_backend()
+        self.check_statuses()
 
     def _set_backend_status(self, ok: bool):
         color = "#22c55e" if ok else "#ef4444"
@@ -102,14 +104,27 @@ class HomeScreen(QWidget):
         self.backend_status.setText(text)
         self.backend_status.setStyleSheet(f"color:{color}; font-size:14px;")
 
+    def _set_wifi_status(self, ok: bool):
+        color = "#22c55e" if ok else "#ef4444"
+        self.wifi_status.setText("●  WiFi")
+        self.wifi_status.setStyleSheet(f"color:{color}; font-size:14px;")
+
     def update_time(self):
         now = QDateTime.currentDateTime()
         self.time.setText(now.toString("HH:mm"))
         self.date.setText(now.toString("ddd, MMM d"))
 
-    def check_backend(self):
+    def check_statuses(self):
+        self._set_wifi_status(self._is_wifi_connected())
         try:
-            with urlopen("http://localhost:8000/", timeout=1) as resp:
+            with urlopen(f"{BACKEND_URL.rstrip('/')}/", timeout=1) as resp:
                 self._set_backend_status(resp.status == 200)
         except (URLError, HTTPError):
             self._set_backend_status(False)
+
+    def _is_wifi_connected(self):
+        try:
+            with socket.create_connection(("8.8.8.8", 53), timeout=1):
+                return True
+        except OSError:
+            return False

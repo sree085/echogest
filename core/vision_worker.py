@@ -123,9 +123,9 @@ class VisionWorker(QThread):
         thumb_open = landmarks[4].x > landmarks[3].x
 
         if all(folded):
-            return "OPEN PALM"
+            return "OPEN HAND"
         elif not any(folded) and not thumb_open:
-            return "POWER OFF"
+            return "FIST"
         elif not any(folded) and thumb_open:
             return "Thumbs Up"
         elif folded == [True, False, False, False]:

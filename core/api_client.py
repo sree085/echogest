@@ -1,6 +1,6 @@
 import requests
 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = "https://echogestapp.onrender.com"
 
 def post_audio(payload):
     try:
@@ -23,7 +23,7 @@ def post_audio(payload):
 def post_gesture(payload):
     try:
         requests.post(
-            f"{BACKEND_URL}/api/gesture",
+            f"{BACKEND_URL}/api/gestures",
             json=payload,
             timeout=2
         )
@@ -36,7 +36,7 @@ def post_heartbeat(controller_id, battery=None):
         battery = 100
     try:
         resp = requests.post(
-            f"https://echogestapp.onrender.com/api/controllers/heartbeat",
+            f"{BACKEND_URL}/api/controllers/heartbeat",
             json={
                 "controllerId": controller_id,
                 "battery": battery,
@@ -52,20 +52,3 @@ def post_heartbeat(controller_id, battery=None):
         msg = f"Heartbeat API error: {e}"
         print(msg)
         return False, msg
-
-
-def get_gesture_mapping(gesture):
-    try:
-        resp = requests.get(
-            f"{BACKEND_URL}/api/gesturemappings/{gesture}",
-            timeout=2
-        )
-        if resp.status_code != 200:
-            return None
-        data = resp.json()
-        if not data.get("found"):
-            return None
-        return data
-    except Exception as e:
-        print("Gesture mapping API error:", e)
-        return None

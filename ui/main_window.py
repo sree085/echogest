@@ -1,4 +1,3 @@
-import sys
 from PyQt5.QtCore import pyqtSignal, QTimer
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QApplication
 from gpiozero import Button
@@ -23,6 +22,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("EchoGest")
         self.setFixedSize(480, 320)
         self.controller_id = CONTROLLER_ID
+        self._is_shutting_down = False
+        self._navigation_busy = False
         self.buzzer = None
         if Buzzer is not None:
             try:
@@ -63,21 +64,41 @@ class MainWindow(QMainWindow):
 
     # -------------------------------
     def show_home(self):
+        if self._navigation_busy:
+            return
+        self._navigation_busy = True
+        QTimer.singleShot(250, self._unlock_navigation)
         self._stop_emergency_beep()
         self._beep_once()
         self.stack.setCurrentWidget(self.home)
 
     def show_gesture(self):
+        if self._navigation_busy:
+            return
+        self._navigation_busy = True
+        QTimer.singleShot(250, self._unlock_navigation)
         self._stop_emergency_beep()
         self._beep_once()
-        self.stack.setCurrentWidget(self.gesture)
-        self.gesture.start_worker()
+        try:
+            self.stack.setCurrentWidget(self.gesture)
+            self.gesture.start_worker()
+        except Exception as exc:
+            print(f"[MainWindow] show_gesture failed: {exc}")
+            self.stack.setCurrentWidget(self.home)
 
     def show_audio(self):
+        if self._navigation_busy:
+            return
+        self._navigation_busy = True
+        QTimer.singleShot(250, self._unlock_navigation)
         self._stop_emergency_beep()
         self._beep_once()
-        self.stack.setCurrentWidget(self.audio)
-        self.audio.restart_audio()
+        try:
+            self.stack.setCurrentWidget(self.audio)
+            self.audio.restart_audio()
+        except Exception as exc:
+            print(f"[MainWindow] show_audio failed: {exc}")
+            self.stack.setCurrentWidget(self.home)
 
     def show_emergency(self):
         self._beep_once()
@@ -97,6 +118,7 @@ class MainWindow(QMainWindow):
     # 🔴 HARD EXIT BUTTON HANDLER
     # -------------------------------
     def shutdown(self):
+        self._is_shutting_down = True
         try:
             if self.gesture:
                 self.gesture.stop_worker()
@@ -110,8 +132,20 @@ class MainWindow(QMainWindow):
                 self.buzzer.off()
                 self.buzzer.close()
         finally:
-            QApplication.quit()
-            sys.exit(0)
+            app = QApplication.instance()
+            if app:
+                app.quit()
+    
+    def closeEvent(self, event):
+        # Ignore accidental window close while running fullscreen kiosk UI.
+        if self._is_shutting_down:
+            event.accept()
+            return
+        event.ignore()
+        self.showFullScreen()
+    
+    def _unlock_navigation(self):
+        self._navigation_busy = False
 
     # -------------------------------
     def _beep_once(self, duration_ms=200):

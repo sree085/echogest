@@ -1,5 +1,17 @@
 
 
+Check status: 
+sudo systemctl status echogest-backend --no-pager
+
+Restart: 
+sudo systemctl restart echogest-backend
+
+View logs: 
+sudo journalctl -u echogest-backend -f --no-pager
+
+
+
+
 
 
 
