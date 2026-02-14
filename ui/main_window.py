@@ -1,3 +1,5 @@
+import os
+import sys
 from PyQt5.QtCore import pyqtSignal, QTimer
 from PyQt5.QtWidgets import QMainWindow, QStackedWidget, QApplication
 from gpiozero import Button
@@ -24,11 +26,17 @@ class MainWindow(QMainWindow):
         self.controller_id = CONTROLLER_ID
         self._is_shutting_down = False
         self._navigation_busy = False
+        self.vibration_motor = None
         self.buzzer = None
         if Buzzer is not None:
             try:
-                # Active buzzer on GPIO26 -> GND
-                self.buzzer = Buzzer(26)
+                # Vibration motor driver on GPIO26 -> GND
+                self.vibration_motor = Buzzer(26)
+            except Exception:
+                self.vibration_motor = None
+            try:
+                # Buzzer on GPIO12 -> GND
+                self.buzzer = Buzzer(12)
             except Exception:
                 self.buzzer = None
 
@@ -52,8 +60,8 @@ class MainWindow(QMainWindow):
         self.gpio_cycle_requested.connect(self.cycle_screen)
         self.gpio_home_requested.connect(self.show_home)
 
-        # Beep once on initial launch after UI is ready
-        QTimer.singleShot(150, self._beep_once)
+        # Vibration pulse on app launch
+        QTimer.singleShot(150, self._vibrate_once)
 
         # Heartbeat timer to keep backend status fresh
         self._heartbeat_timer = QTimer(self)
@@ -63,22 +71,22 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(500, self._send_heartbeat)
 
     # -------------------------------
-    def show_home(self):
+    def show_home(self, feedback=True):
         if self._navigation_busy:
             return
         self._navigation_busy = True
         QTimer.singleShot(250, self._unlock_navigation)
-        self._stop_emergency_beep()
-        self._beep_once()
+        if feedback:
+            self._vibrate_once()
         self.stack.setCurrentWidget(self.home)
 
-    def show_gesture(self):
+    def show_gesture(self, feedback=True):
         if self._navigation_busy:
             return
         self._navigation_busy = True
         QTimer.singleShot(250, self._unlock_navigation)
-        self._stop_emergency_beep()
-        self._beep_once()
+        if feedback:
+            self._vibrate_once()
         try:
             self.stack.setCurrentWidget(self.gesture)
             self.gesture.start_worker()
@@ -86,13 +94,13 @@ class MainWindow(QMainWindow):
             print(f"[MainWindow] show_gesture failed: {exc}")
             self.stack.setCurrentWidget(self.home)
 
-    def show_audio(self):
+    def show_audio(self, feedback=True):
         if self._navigation_busy:
             return
         self._navigation_busy = True
         QTimer.singleShot(250, self._unlock_navigation)
-        self._stop_emergency_beep()
-        self._beep_once()
+        if feedback:
+            self._vibrate_once()
         try:
             self.stack.setCurrentWidget(self.audio)
             self.audio.restart_audio()
@@ -101,9 +109,7 @@ class MainWindow(QMainWindow):
             self.stack.setCurrentWidget(self.home)
 
     def show_emergency(self):
-        self._beep_once()
         self.stack.setCurrentWidget(self.emergency)
-        self._start_emergency_beep()
 
     def cycle_screen(self):
         current = self.stack.currentWidget()
@@ -117,24 +123,35 @@ class MainWindow(QMainWindow):
     # -------------------------------
     # 🔴 HARD EXIT BUTTON HANDLER
     # -------------------------------
+    def _cleanup_for_exit(self):
+        if self.gesture:
+            self.gesture.stop_worker()
+        if self.audio:
+            self.audio.cleanup()
+        if self.gpio_button:
+            self.gpio_button.close()
+        if self.buzzer:
+            self.buzzer.off()
+            self.buzzer.close()
+        if self.vibration_motor:
+            self.vibration_motor.off()
+            self.vibration_motor.close()
+
     def shutdown(self):
         self._is_shutting_down = True
         try:
-            if self.gesture:
-                self.gesture.stop_worker()
-            if self.audio:
-                self.audio.cleanup()
-                if getattr(self.audio, "buzzer", None):
-                    self.audio.buzzer.close()
-            if self.gpio_button:
-                self.gpio_button.close()
-            if self.buzzer:
-                self.buzzer.off()
-                self.buzzer.close()
+            self._cleanup_for_exit()
         finally:
             app = QApplication.instance()
             if app:
                 app.quit()
+
+    def restart_program(self):
+        self._is_shutting_down = True
+        try:
+            self._cleanup_for_exit()
+        finally:
+            os.execv(sys.executable, [sys.executable] + sys.argv)
     
     def closeEvent(self, event):
         # Ignore accidental window close while running fullscreen kiosk UI.
@@ -148,19 +165,18 @@ class MainWindow(QMainWindow):
         self._navigation_busy = False
 
     # -------------------------------
-    def _beep_once(self, duration_ms=200):
+    def _vibrate_once(self, duration_ms=200):
+        if not self.vibration_motor:
+            return
+        self.vibration_motor.on()
+        QTimer.singleShot(duration_ms, self.vibration_motor.off)
+
+    def feedback_detection(self, duration_ms=200):
+        self._vibrate_once(duration_ms)
         if not self.buzzer:
             return
         self.buzzer.on()
         QTimer.singleShot(duration_ms, self.buzzer.off)
-
-    def _start_emergency_beep(self):
-        if self.buzzer:
-            self.buzzer.on()
-
-    def _stop_emergency_beep(self):
-        if self.buzzer:
-            self.buzzer.off()
 
     def _send_heartbeat(self):
         post_heartbeat(self.controller_id)

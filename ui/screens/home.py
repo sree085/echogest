@@ -29,6 +29,20 @@ class HomeScreen(QWidget):
         self._set_backend_status(False)
         self._set_wifi_status(False)
 
+        restart_btn = QPushButton("●")
+        restart_btn.setFixedSize(22, 22)
+        restart_btn.setStyleSheet("""
+            QPushButton {
+                background:#3b82f6;
+                color:#3b82f6;
+                border-radius:11px;
+            }
+            QPushButton:pressed {
+                background:#2563eb;
+            }
+        """)
+        restart_btn.clicked.connect(self.main.restart_program)
+
         exit_btn = QPushButton("●")
         exit_btn.setFixedSize(22, 22)
         exit_btn.setStyleSheet("""
@@ -47,6 +61,8 @@ class HomeScreen(QWidget):
         top_bar.addSpacing(10)
         top_bar.addWidget(self.wifi_status)
         top_bar.addStretch()
+        top_bar.addWidget(restart_btn)
+        top_bar.addSpacing(6)
         top_bar.addWidget(exit_btn)
 
         root.addLayout(top_bar)

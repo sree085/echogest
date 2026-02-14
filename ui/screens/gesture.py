@@ -105,8 +105,9 @@ class GestureScreen(QWidget):
 
         self.gesture_label.setText(f"Gesture: {gesture}")
         self.update_countdown(0)
-
-        self.go_home()
+        if hasattr(self.main, "feedback_detection"):
+            self.main.feedback_detection()
+        self.go_home(feedback=False)
 
     def update_countdown(self, remaining):
         if remaining <= 0:
@@ -117,9 +118,9 @@ class GestureScreen(QWidget):
         self.progress.setValue(remaining)
 
     # --------------------------------------------------
-    def go_home(self):
+    def go_home(self, feedback=True):
         self.stop_worker()
-        self.main.show_home()
+        self.main.show_home(feedback=feedback)
 
     def closeEvent(self, event):
         self.stop_worker()

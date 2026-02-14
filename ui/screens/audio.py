@@ -169,6 +169,8 @@ class AudioScreen(QWidget):
     def on_result(self, label):
         self.waveform.stop()
         self.command.setText(f'Audio Detected: "{label}"')
+        if hasattr(self.main, "feedback_detection"):
+            self.main.feedback_detection()
 
     def on_error(self, err):
         self.waveform.stop()
